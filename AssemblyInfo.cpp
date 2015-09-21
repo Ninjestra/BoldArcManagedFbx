@@ -14,7 +14,7 @@ using namespace System::Security::Permissions;
 [assembly:AssemblyTitleAttribute(L"BoldarcManagedFbx")];
 [assembly:AssemblyDescriptionAttribute(L"")];
 [assembly:AssemblyConfigurationAttribute(L"")];
-[assembly:AssemblyCompanyAttribute(L"")];
+[assembly:AssemblyCompanyAttribute(L"BoldArc AB")];
 [assembly:AssemblyProductAttribute(L"BoldarcManagedFbx")];
 [assembly:AssemblyCopyrightAttribute(L"Copyright (c)  2015")];
 [assembly:AssemblyTrademarkAttribute(L"")];
