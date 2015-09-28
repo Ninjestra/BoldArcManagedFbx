@@ -1,14 +1,34 @@
 #include "stdafx.h"
 #include "FileExporter.h"
+using System::IntPtr;
+using System::Runtime::InteropServices::Marshal;
 
 namespace BoldarcManagedFbx
 {
 	FileExporter::FileExporter()
 	{
 		m_lMeshes = gcnew List<Mesh^>();
-		m_lControlPoints = gcnew List<Vector3>();
-		m_lIndices = gcnew List<int>();
-		m_iFaceCount = 0;
+		m_dReplacements = gcnew Dictionary<String^, String^>();
+		m_dReplacements->Add( "å", "a" );
+		m_dReplacements->Add( "Å", "A" );
+		m_dReplacements->Add( "ä", "a" );
+		m_dReplacements->Add( "Ä", "A" );
+		m_dReplacements->Add( "ö", "o" );
+		m_dReplacements->Add( "Ö", "O" );
+		m_dReplacements->Add( " ", "_" );
+		m_dReplacements->Add( "/", "_" );
+		m_dReplacements->Add( "\\", "_" );
+		m_dReplacements->Add( "(", "_" );
+		m_dReplacements->Add( ")", "_" );
+		m_dReplacements->Add( ".", "_" );
+		m_dReplacements->Add( ",", "_" );
+		m_dReplacements->Add( "-", "_" );
+		m_dReplacements->Add( "+", "_" );
+		m_dReplacements->Add( ":", "_" );
+		m_dReplacements->Add( ";", "_" );
+		m_dReplacements->Add( "*", "x" );
+		m_dReplacements->Add( "<", "" );
+		m_dReplacements->Add( ">", "" );
 	}
 	void FileExporter::ExportFile()
 	{
@@ -21,43 +41,69 @@ namespace BoldarcManagedFbx
 			FbxAxisSystem::eLeftHanded );
 		_axisSystem.ConvertScene( _pScene );
 
-
-		FbxNode* _pNode = FbxNode::Create( _pScene, "MeshNode" );
-
-		FbxMesh* _pMesh = FbxMesh::Create( _pScene, "TestMesh" );
-
-		if ( m_lControlPoints != nullptr && m_lIndices != nullptr )
+		for ( int i = 0; i < m_lMeshes->Count; i++ )
 		{
-			OptimizePoints();
+			FbxNode* _pNode = FbxNode::Create( _pScene, "MeshNode" );
 
-			_pMesh->InitControlPoints( m_lControlPoints->Count );
-			FbxVector4* _pControlPoints = _pMesh->GetControlPoints();
-			for ( int i = 0; i < m_lControlPoints->Count; i++ )
-			{
-				_pControlPoints[i] = m_lControlPoints[i].ToFbxVector4();
-			}
+			FbxMesh* _pMesh = FbxMesh::Create( _pScene, "TestMesh" );
 
-			//_pMesh->ReservePolygonVertexCount( m_lIndices->Count );
-			//int* _pIndices = _pMesh->GetPolygonVertices();
-			int _iIndexCount = m_lIndices->Count / 3;
-			for ( int i = 0; i < _iIndexCount; i++ )
+			List<Vector3>^ _Vertices = m_lMeshes[i]->Vertices;
+			List<int>^ _Indices = m_lMeshes[i]->Indices;
+			List<Vector3>^ _Normals = m_lMeshes[i]->Normals;
+
+			if ( _Vertices != nullptr && _Indices != nullptr )
 			{
-				_pMesh->BeginPolygon();
-				for ( int j = 0; j < 3; j++ )
+
+				_pMesh->InitControlPoints( _Vertices->Count );
+				FbxVector4* _pControlPoints = _pMesh->GetControlPoints();
+				for ( int j = 0; j < _Vertices->Count; j++ )
 				{
-					_pMesh->AddPolygon( m_lIndices[i * 3 + j] );
+					_pControlPoints[j] = _Vertices[j].ToFbxVector4();
 				}
-				_pMesh->EndPolygon();
+
+				//_pMesh->ReservePolygonVertexCount( m_lIndices->Count );
+				//int* _pIndices = _pMesh->GetPolygonVertices();
+				int _iIndexCount = _Indices->Count / 3;
+				for ( int j = 0; j < _iIndexCount; j++ )
+				{
+					_pMesh->BeginPolygon();
+					for ( int k = 0; k < 3; k++ )
+					{
+						_pMesh->AddPolygon( _Indices[j * 3 + k] );
+					}
+					_pMesh->EndPolygon();
+				}
+
+				if ( _Normals != nullptr )
+				{
+					FbxGeometryElementNormal* _GeometryElementNormal = _pMesh->CreateElementNormal();
+
+					_GeometryElementNormal->SetMappingMode( FbxGeometryElement::eByControlPoint );
+
+					_GeometryElementNormal->SetReferenceMode( FbxGeometryElement::eDirect );
+
+					for each (Vector3 _norm in _Normals)
+					{
+						_GeometryElementNormal->GetDirectArray().Add( _norm.ToFbxVector4() );
+					}
+
+				}
+
+				String^ _pName = FixName( m_lMeshes[i]->Name );
+				const char* _pNewName = (const char*)(Marshal::StringToHGlobalAnsi( _pName )).ToPointer();
+				//const char* _meshName = _name + "_mesh";
+				//_pMesh->SetName( _name + "_mesh");
+				
+				_pNode->SetName( _pNewName );
+				_pNode->AddNodeAttribute( _pMesh );
+				_pScene->GetRootNode()->AddChild( _pNode );
 			}
-
-			_pNode->AddNodeAttribute( _pMesh );
-			_pScene->GetRootNode()->AddChild( _pNode );
-
-			FbxExporter* _pExporter = FbxExporter::Create( m_pFbxManager, "Exporter" );
-			_pExporter->Initialize( "D:\\Joel\\FBX\\exporter_test.fbx", -1, m_pFbxManager->GetIOSettings());
-			_pExporter->Export( _pScene );
-			_pExporter->Destroy();
 		}
+		FbxExporter* _pExporter = FbxExporter::Create( m_pFbxManager, "Exporter" );
+		_pExporter->Initialize( "D:\\Joel\\FBX\\exporter_test.fbx", -1, m_pFbxManager->GetIOSettings());
+		_pExporter->Export( _pScene );
+		_pExporter->Destroy();
+
 	}
 
 	void FileExporter::AddMesh( Mesh^ inMesh )
@@ -65,38 +111,12 @@ namespace BoldarcManagedFbx
 		m_lMeshes->Add( inMesh );
 	}
 
-	void FileExporter::OptimizePoints()
+	String^ FileExporter::FixName( String^ inName )
 	{
-		Dictionary<int, int>^ _pDictionary = gcnew Dictionary<int, int>();
-		List<Vector3>^ _pList = gcnew List<Vector3>( m_lControlPoints->Count );
-		for ( int i = 0; i < m_lIndices->Count; i++ )
-		{
-			Vector3 _point = m_lControlPoints[m_lIndices[i]];
-			int hashCode = _point.GetHashCode();
-			if ( _pDictionary->ContainsKey( hashCode ) )
-			{
-				m_lIndices[i] = _pDictionary[hashCode];
-			}
-			else
-			{
-				_pList->Add( _point );
-				int value = _pList->Count - 1;
-				_pDictionary[hashCode] = value;
-				m_lIndices[i] = value;
-			}
-		}
-		m_lControlPoints = _pList;
-	}
+		String^ _s = inName;
+		for each (KeyValuePair<String^, String^> _pair in m_dReplacements)
+			_s = _s->Replace(_pair.Key, _pair.Value);
 
-	void FileExporter::AddGeometry( List<Vector3>^ inControlPoints, List<int>^ inIndices )
-	{
-
-		m_lControlPoints->AddRange( inControlPoints );
-		for ( int i = 0; i < inIndices->Count; i++ )
-		{
-			m_lIndices->Add( inIndices[i] + m_iFaceCount );
-		}
-		m_iFaceCount += inControlPoints->Count;
-
+		return _s;
 	}
 }

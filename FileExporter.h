@@ -10,16 +10,14 @@ namespace BoldarcManagedFbx
 	private:
 		FbxManager* m_pFbxManager;
 		List<Mesh^>^ m_lMeshes;
-		List<Vector3>^ m_lControlPoints;
-		List<int>^ m_lIndices;
-		int m_iFaceCount;
+		String^ FixName( String^ inName );
+		Dictionary<String^, String^>^ m_dReplacements;
 
 	public:
 		FileExporter();
 		void ExportFile();
 		void AddMesh( Mesh^ inMesh );
-		void OptimizePoints();
-		void AddGeometry( List<Vector3>^ inControlPoints, List<int>^ inIndices );
+
 
 	};
 }

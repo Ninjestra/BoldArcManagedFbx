@@ -1,5 +1,6 @@
 #pragma once
 using namespace System::Collections::Generic;
+using namespace System;
 #include "Vector3.h"
 
 namespace BoldarcManagedFbx
@@ -8,17 +9,21 @@ namespace BoldarcManagedFbx
 	{
 	private:
 		int m_iFaceCount;
-		List<Vector3>^ m_lVertices;
-		List<int>^ m_lIndices;
+		
 
 	public:
-		Mesh();
-		void AddGeometry( List<Vector3>^ inControlPoints, List<int>^ inIndices );
+		Mesh(String^ inName);
+		void AddGeometry( List<Vector3>^ inControlPoints, List<int>^ inIndices, List<Vector3>^ inNormals );
 		void OptimizePoints();
+		bool IsEmpty();
 
 	internal:
-		property FbxMesh* FbxMesh;
-
+		property List<Vector3>^ Vertices;
+		property List<int>^ Indices;
+		property List<Vector3>^ Normals;
+		property List<int>^ NormalIndices;
+		property String^ Name;
+		//property 
 	};
 }
 

@@ -3,49 +3,73 @@
 
 namespace BoldarcManagedFbx
 {
-	Mesh::Mesh()
+	Mesh::Mesh(String^ inName)
 	{
-		m_lVertices = gcnew List<Vector3>();
-		m_lIndices = gcnew List<int>();
+		Vertices = gcnew List<Vector3>();
+		Indices = gcnew List<int>();
+		Normals = gcnew List<Vector3>();
+		NormalIndices = gcnew List<int>();
+		Name = inName;
+
 		m_iFaceCount = 0;
 	}
 
-	void Mesh::AddGeometry( List<Vector3>^ inControlPoints, List<int>^ inIndices )
+	void Mesh::AddGeometry( List<Vector3>^ inControlPoints, List<int>^ inIndices, List<Vector3>^ inNormals )
 	{
 
-		m_lVertices->AddRange( inControlPoints );
-		for ( int i = 0; i < inIndices->Count; i++ )
+		Vertices->AddRange( inControlPoints );
+		if ( inNormals->Count > 1 )
 		{
-			m_lIndices->Add( inIndices[i] + m_iFaceCount );
+			Normals->AddRange( inNormals );
 		}
+		else
+		{
+			for each (Vector3 _vert in inControlPoints)
+			{
+				Normals->Add( inNormals[0] );
+			}
+		}
+		for each (int _index in inIndices)
+		{
+			Indices->Add( _index + m_iFaceCount );
+		}
+
 		m_iFaceCount += inControlPoints->Count;
-
-		OptimizePoints();
-
-
-
 	}
+
+	//void Mesh::AddGeometry( List<Vector3>^ inControlPoints, List<int>^ inIndices, Vector3^ inNormal )
+//	{
+
+//	}
 
 	void Mesh::OptimizePoints()
 	{
 		Dictionary<int, int>^ _pDictionary = gcnew Dictionary<int, int>();
-		List<Vector3>^ _pList = gcnew List<Vector3>( m_lVertices->Count );
-		for ( int i = 0; i < m_lIndices->Count; i++ )
+		List<Vector3>^ _pList = gcnew List<Vector3>( Vertices->Count );
+		for ( int i = 0; i < Indices->Count; i++ )
 		{
-			Vector3 _point = m_lVertices[m_lIndices[i]];
+			Vector3 _point = Vertices[Indices[i]];
 			int hashCode = _point.GetHashCode();
 			if ( _pDictionary->ContainsKey( hashCode ) )
 			{
-				m_lIndices[i] = _pDictionary[hashCode];
+				Indices[i] = _pDictionary[hashCode];
 			}
 			else
 			{
 				_pList->Add( _point );
 				int value = _pList->Count - 1;
 				_pDictionary[hashCode] = value;
-				m_lIndices[i] = value;
+				Indices[i] = value;
 			}
 		}
-		m_lVertices = _pList;
+		Vertices = _pList;
+	}
+
+	bool Mesh::IsEmpty()
+	{
+		if ( Vertices->Count > 0 )
+			return false;
+		else
+			return true;
 	}
 }
