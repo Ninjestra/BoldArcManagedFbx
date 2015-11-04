@@ -9,9 +9,12 @@ namespace BoldarcManagedFbx
 		Indices = gcnew List<int>();
 		Normals = gcnew List<Vector3>();
 		NormalIndices = gcnew List<int>();
+		MaterialIDPerFace = gcnew Dictionary<int, int>();
+		PolysPerFace = gcnew List<int>();
 		Name = inName;
 
-		m_iFaceCount = 0;
+		m_iFaceVertexCount = 0;
+		FaceCount = 0;
 	}
 
 	void Mesh::AddGeometry( List<Vector3>^ inControlPoints, List<int>^ inIndices, List<Vector3>^ inNormals )
@@ -31,10 +34,12 @@ namespace BoldarcManagedFbx
 		}
 		for each (int _index in inIndices)
 		{
-			Indices->Add( _index + m_iFaceCount );
+			Indices->Add( _index + m_iFaceVertexCount );
 		}
 
-		m_iFaceCount += inControlPoints->Count;
+		m_iFaceVertexCount += inControlPoints->Count;
+		PolysPerFace->Add( inIndices->Count / 3 );
+		FaceCount++;
 	}
 
 	//void Mesh::AddGeometry( List<Vector3>^ inControlPoints, List<int>^ inIndices, Vector3^ inNormal )
@@ -65,11 +70,29 @@ namespace BoldarcManagedFbx
 		Vertices = _pList;
 	}
 
+	void Mesh::FixPosition()
+	{
+		Vector3^ _pos = gcnew Vector3();
+		
+		for ( int i = 0; i < Vertices->Count; i++ )
+		{
+			Vertices[i] = (Vertices[i] - Position);
+		}
+
+		Scale = Scale * 30.0; // 30 is hard coded because everything is so dang small coming out of revit.
+		Position = Position * Scale;
+	}
+
 	bool Mesh::IsEmpty()
 	{
 		if ( Vertices->Count > 0 )
 			return false;
 		else
 			return true;
+	}
+
+	int Mesh::GetVertexCount()
+	{
+		return Vertices->Count;
 	}
 }
